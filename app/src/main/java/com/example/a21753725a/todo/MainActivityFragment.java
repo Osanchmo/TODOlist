@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -36,6 +37,7 @@ public class MainActivityFragment extends Fragment {
     View view;
     ArrayList todo;
 
+
     static final int REQUEST_TAKE_PHOTO = 1;
 
 
@@ -46,12 +48,12 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_main, container);
-        todo = new ArrayList<String>();
+        todo = new ArrayList<TODO>();
 
         FloatingActionButton fab = (FloatingActionButton) view.findViewById(R.id.fab);
 
         ListView lv = (ListView) view.findViewById(R.id.todolst);
-        adapter = new ArrayAdapter<String>(this.getContext(),R.layout.list_view_adapter,R.id.listViewText,todo);
+        adapter = new TODOAdapter(getContext(),R.layout.list_view_adapter, todo);
 
         lv.setAdapter(adapter);
 
@@ -59,6 +61,10 @@ public class MainActivityFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
+                TODO obj = new TODO();
+                obj.setText("test");
+                obj.setMediapath(mCurrentPhotoPath);
+                adapter.add(obj);
             }
         });
 
@@ -97,7 +103,7 @@ public class MainActivityFragment extends Fragment {
         );
 
         // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+        mCurrentPhotoPath = image.getAbsolutePath();
         return image;
     }
 }
