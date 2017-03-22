@@ -1,5 +1,6 @@
 package com.example.a21753725a.todo;
 
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,17 +13,18 @@ import android.support.v4.app.FragmentTransaction;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Adapter;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.bumptech.glide.Glide;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,12 +33,18 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static android.app.Activity.RESULT_OK;
+
 public class MainActivityFragment extends Fragment {
+
     String mCurrentPhotoPath;
     ArrayAdapter adapter;
     View view;
     ArrayList todo;
-
+    ListView lv;
+    FloatingActionButton fab;
+    ImageView preview;
+    EditText todoText;
 
     static final int REQUEST_TAKE_PHOTO = 1;
 
@@ -48,11 +56,17 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_main, container);
+
+        preview = (ImageView) view.findViewById(R.id.preview);
+        preview.setVisibility(View.INVISIBLE);
+        todoText = (EditText) view.findViewById(R.id.todoText);
+        todoText.setVisibility(View.INVISIBLE);
+
         todo = new ArrayList<TODO>();
 
-        FloatingActionButton fab = (FloatingActionButton) view.findViewById(R.id.fab);
+        fab = (FloatingActionButton) view.findViewById(R.id.fab);
 
-        ListView lv = (ListView) view.findViewById(R.id.todolst);
+       lv = (ListView) view.findViewById(R.id.todolst);
         adapter = new TODOAdapter(getContext(),R.layout.list_view_adapter, todo);
 
         lv.setAdapter(adapter);
@@ -61,10 +75,10 @@ public class MainActivityFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
-                TODO obj = new TODO();
-                obj.setText("test");
-                obj.setMediapath(mCurrentPhotoPath);
-                adapter.add(obj);
+                //TODO obj = new TODO();
+                //obj.setText("test");
+                //obj.setMediapath(mCurrentPhotoPath);
+                //adapter.add(obj);
             }
         });
 
@@ -87,7 +101,28 @@ public class MainActivityFragment extends Fragment {
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
                         Uri.fromFile(photoFile));
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+
             }
+
+        }
+    }
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+
+        switch (requestCode) {
+            case REQUEST_TAKE_PHOTO:
+                if (resultCode == RESULT_OK) {
+                    lv.setVisibility(View.INVISIBLE);
+                    fab.setVisibility(View.INVISIBLE);
+                   Glide.with(getActivity()).load(mCurrentPhotoPath).into(preview);
+                    preview.setVisibility(View.VISIBLE);
+                    todoText.setVisibility(View.VISIBLE);
+                    todoText.requestFocus();
+                    showInputMethod();
+                }
         }
     }
     private File createImageFile() throws IOException {
@@ -105,5 +140,10 @@ public class MainActivityFragment extends Fragment {
         // Save a file: path for use with ACTION_VIEW intents
         mCurrentPhotoPath = image.getAbsolutePath();
         return image;
+    }
+
+    public void showInputMethod() {
+        InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,InputMethodManager.HIDE_IMPLICIT_ONLY);
     }
 }
