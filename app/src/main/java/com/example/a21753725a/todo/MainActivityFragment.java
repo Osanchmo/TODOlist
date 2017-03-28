@@ -78,7 +78,7 @@ public class MainActivityFragment extends Fragment {
                             todoText.setVisibility(View.INVISIBLE);
                             lv.setVisibility(View.VISIBLE);
                             fab.setVisibility(View.VISIBLE);
-
+                            hideInputMethod();
                         }
                     return true;
                 }
@@ -142,7 +142,7 @@ public class MainActivityFragment extends Fragment {
                     preview.setVisibility(View.VISIBLE);
                     todoText.setVisibility(View.VISIBLE);
                     todoText.requestFocus();
-                    showInputMethod();
+                    lv.invalidate();
                 }
         }
     }
@@ -163,9 +163,9 @@ public class MainActivityFragment extends Fragment {
         return image;
     }
 
-    public void showInputMethod() {
+    public void hideInputMethod() {
         InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,InputMethodManager.HIDE_IMPLICIT_ONLY);
+        imm.hideSoftInputFromWindow(todoText.getWindowToken(), 0);
     }
 
     public void firebaseUpload(TODO todo) {
