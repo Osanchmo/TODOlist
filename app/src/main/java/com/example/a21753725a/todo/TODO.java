@@ -4,7 +4,11 @@ public class TODO {
     String text;
     String mediapath;
 
+    public TODO() {
+    }
+
     public TODO(String text, String mediapath) {
+
         this.text = text;
         this.mediapath = mediapath;
     }

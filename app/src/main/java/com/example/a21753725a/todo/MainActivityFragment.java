@@ -6,35 +6,29 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Adapter;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
-import android.widget.Toast;
-
 import com.bumptech.glide.Glide;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -43,11 +37,13 @@ public class MainActivityFragment extends Fragment {
     String mCurrentPhotoPath;
     ArrayAdapter adapter;
     View view;
-    ArrayList todo;
     ListView lv;
     FloatingActionButton fab;
     ImageView preview;
     EditText todoText;
+    ArrayList<TODO> todos;
+    FirebaseDatabase database;
+    DatabaseReference myRef;
 
     static final int REQUEST_TAKE_PHOTO = 1;
 
@@ -59,27 +55,31 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_main, container);
-
+        database = FirebaseDatabase.getInstance();
+        myRef = database.getReference("TODO");
         preview = (ImageView) view.findViewById(R.id.preview);
         preview.setVisibility(View.INVISIBLE);
         todoText = (EditText) view.findViewById(R.id.todoText);
         todoText.setVisibility(View.INVISIBLE);
+
+        lv = (ListView) view.findViewById(R.id.todolst);
+        loadList();
 
         todoText.setOnKeyListener(new View.OnKeyListener() {
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 // If the event is a key-down event on the "enter" button
                 if ((event.getAction() == KeyEvent.ACTION_DOWN) &&
                         (keyCode == KeyEvent.KEYCODE_ENTER)) {
-                        String currentText = todoText.getText().toString();
-                        if (currentText != null){
-                            TODO todo = new TODO(currentText,mCurrentPhotoPath);
-                            firebaseUpload(todo);
-                            preview.setVisibility(View.INVISIBLE);
-                            todoText.setVisibility(View.INVISIBLE);
-                            lv.setVisibility(View.VISIBLE);
-                            fab.setVisibility(View.VISIBLE);
-                            hideInputMethod();
-                        }
+                    String currentText = todoText.getText().toString();
+                    if (currentText != null) {
+                        TODO todo = new TODO(currentText, mCurrentPhotoPath);
+                        myRef.push().setValue(todo);
+                        preview.setVisibility(View.INVISIBLE);
+                        todoText.setVisibility(View.INVISIBLE);
+                        lv.setVisibility(View.VISIBLE);
+                        fab.setVisibility(View.VISIBLE);
+                        hideInputMethod();
+                    }
                     return true;
                 }
                 return false;
@@ -87,22 +87,13 @@ public class MainActivityFragment extends Fragment {
         });
 
 
-        todo = new ArrayList<TODO>();
-
         fab = (FloatingActionButton) view.findViewById(R.id.fab);
-
-       lv = (ListView) view.findViewById(R.id.todolst);
-        adapter = new TODOAdapter(getContext(),R.layout.list_view_adapter, todo);
-
-        lv.setAdapter(adapter);
-
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
             }
         });
-
         return view;
     }
 
@@ -138,16 +129,15 @@ public class MainActivityFragment extends Fragment {
                 if (resultCode == RESULT_OK) {
                     lv.setVisibility(View.INVISIBLE);
                     fab.setVisibility(View.INVISIBLE);
-                   Glide.with(getActivity()).load(mCurrentPhotoPath).into(preview);
+                    Glide.with(getActivity()).load(mCurrentPhotoPath).into(preview);
                     preview.setVisibility(View.VISIBLE);
                     todoText.setVisibility(View.VISIBLE);
                     todoText.requestFocus();
-                    lv.invalidate();
                 }
         }
     }
+
     private File createImageFile() throws IOException {
-        // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp;
         File storageDir = Environment.getExternalStoragePublicDirectory(
@@ -168,10 +158,28 @@ public class MainActivityFragment extends Fragment {
         imm.hideSoftInputFromWindow(todoText.getWindowToken(), 0);
     }
 
-    public void firebaseUpload(TODO todo) {
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("TODO");
 
-        myRef.push().setValue(todo);
+    public void loadList() {
+        // Read from the database
+        myRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                todos = new ArrayList<>();
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+
+                    TODO todo = postSnapshot.getValue(TODO.class);
+                    todos.add(todo);
+
+                }
+                adapter = new TODOAdapter(getContext(), R.layout.list_view_adapter, todos);
+                lv.setAdapter(adapter);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                error.toException().printStackTrace();
+            }
+        });
     }
 }
