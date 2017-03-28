@@ -10,6 +10,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +26,8 @@ import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,6 +65,28 @@ public class MainActivityFragment extends Fragment {
         todoText = (EditText) view.findViewById(R.id.todoText);
         todoText.setVisibility(View.INVISIBLE);
 
+        todoText.setOnKeyListener(new View.OnKeyListener() {
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                // If the event is a key-down event on the "enter" button
+                if ((event.getAction() == KeyEvent.ACTION_DOWN) &&
+                        (keyCode == KeyEvent.KEYCODE_ENTER)) {
+                        String currentText = todoText.getText().toString();
+                        if (currentText != null){
+                            TODO todo = new TODO(currentText,mCurrentPhotoPath);
+                            firebaseUpload(todo);
+                            preview.setVisibility(View.INVISIBLE);
+                            todoText.setVisibility(View.INVISIBLE);
+                            lv.setVisibility(View.VISIBLE);
+                            fab.setVisibility(View.VISIBLE);
+
+                        }
+                    return true;
+                }
+                return false;
+            }
+        });
+
+
         todo = new ArrayList<TODO>();
 
         fab = (FloatingActionButton) view.findViewById(R.id.fab);
@@ -75,10 +100,6 @@ public class MainActivityFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
-                //TODO obj = new TODO();
-                //obj.setText("test");
-                //obj.setMediapath(mCurrentPhotoPath);
-                //adapter.add(obj);
             }
         });
 
@@ -145,5 +166,12 @@ public class MainActivityFragment extends Fragment {
     public void showInputMethod() {
         InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,InputMethodManager.HIDE_IMPLICIT_ONLY);
+    }
+
+    public void firebaseUpload(TODO todo) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("TODO");
+
+        myRef.push().setValue(todo);
     }
 }
